@@ -18,4 +18,14 @@ for (const g of grammars) {
 const wts = path.dirname(require.resolve("web-tree-sitter"));
 copyFileSync(path.join(wts, "tree-sitter.wasm"), path.join(outDir, "tree-sitter.wasm"));
 
-console.log(`copied ${grammars.length + 1} wasm files -> dist/wasm/`);
+// tree-sitter .scm query files (not handled by tsc)
+import { cpSync, globSync } from "node:fs";
+let scm = 0;
+for (const lang of ["python", "typescript"]) {
+  const src = path.resolve("src/map/extract", lang, "queries");
+  const dst = path.resolve("dist/src/map/extract", lang, "queries");
+  cpSync(src, dst, { recursive: true });
+  scm += globSync(path.join(src, "*.scm")).length;
+}
+
+console.log(`copied ${grammars.length + 1} wasm files -> dist/wasm/, ${scm} .scm query files -> dist/src/`);
