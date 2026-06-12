@@ -49,21 +49,40 @@ async function main() {
   for (const n of names) assert.match(n, /^[a-zA-Z0-9_-]+$/, `bad tool name: ${n}`);
   console.log(`✓ ${tools.length} tools registered, names valid`);
 
-  // 2. Every tool returns the envelope shape (ok may be false while layers are stubs)
-  const status = await call(client, "map_status");
+  // 2. Wait for the background map build, then exercise the map surface
+  let status = await call(client, "map_status");
   assert.strictEqual(typeof status.ok, "boolean");
   assert.strictEqual(typeof status.tokenBudget?.used, "number");
-  console.log(`✓ map_status envelope: ok=${status.ok} built=${status.data?.built}`);
-
-  const overview = await call(client, "map_overview", { tokenBudget: 500 });
-  assert.strictEqual(typeof overview.ok, "boolean");
-  if (!overview.ok) {
-    assert.strictEqual(overview.error.code, "MAP_NOT_BUILT");
-    console.log("✓ map_overview returns MAP_NOT_BUILT (map layer not wired yet)");
-  } else {
-    assert(overview.data.clusters.length >= 1, "expected at least one cluster");
-    console.log(`✓ map_overview: ${overview.data.symbols} symbols in ${overview.data.clusters.length} cluster(s)`);
+  for (let i = 0; i < 40 && !status.data?.built; i++) {
+    await new Promise((r) => setTimeout(r, 250));
+    status = await call(client, "map_status");
   }
+  assert.strictEqual(status.data.built, true, "map did not build within 10s");
+  console.log(`✓ map built: ${status.data.files} files, ${status.data.symbols} symbols, ${status.data.edges} edges`);
+
+  const overview = await call(client, "map_overview", { tokenBudget: 1500 });
+  assert.strictEqual(overview.ok, true);
+  assert(overview.data.clusters.length >= 1, "expected at least one cluster");
+  console.log(`✓ map_overview: ${overview.data.symbols} symbols in ${overview.data.clusters.length} cluster(s)`);
+
+  const search = await call(client, "map_search", { query: "refresh" });
+  assert.strictEqual(search.ok, true);
+  const refresh = search.data.results.find((r: any) => r.id.endsWith("#SessionStore.refresh"));
+  assert(refresh, "map_search did not find SessionStore.refresh");
+  console.log(`✓ map_search: found ${refresh.id}`);
+
+  const neighbors = await call(client, "map_neighbors", { nodeId: refresh.id, direction: "in", tokenBudget: 800 });
+  assert.strictEqual(neighbors.ok, true);
+  assert(neighbors.data.neighbors.length >= 1, "expected incoming neighbors for refresh");
+  console.log(`✓ map_neighbors: ${neighbors.data.neighbors.length} incoming edge(s)`);
+
+  const pathRes = await call(client, "map_path", {
+    from: neighbors.data.neighbors[0].id,
+    to: refresh.id,
+  });
+  assert.strictEqual(pathRes.ok, true);
+  assert.strictEqual(pathRes.data.found, true, "expected a structural path");
+  console.log(`✓ map_path: ${pathRes.data.path.length} hops`);
 
   const badResolve = await call(client, "resolve", {});
   assert.strictEqual(badResolve.ok, false);
