@@ -17,6 +17,7 @@ import { extractFile } from "./extract/registry.js";
 import { computeDerived, DerivedState } from "./graph.js";
 import type { GraphEdge, GraphNode, IndexManifest } from "./types.js";
 import type { FileExtraction } from "./types.js";
+import { makeNodeId } from "./ids.js";
 import { resolveGraph } from "./resolve.js";
 import { readAndHash, scanFiles } from "./scanner.js";
 import { IndexStore } from "./store.js";
@@ -309,6 +310,20 @@ export class MapService implements MapApi {
   /** Raw node access for the bridge (loc is 0-based here). */
   getNode(id: string): GraphNode | undefined {
     return this.state.nodes.get(id);
+  }
+
+  /** Innermost symbol node containing a 0-based line in a file, else the file node. */
+  nodeAtLine(file: string, line0: number): GraphNode | undefined {
+    const fx = this.extractions.get(file);
+    if (!fx) return undefined;
+    let best: GraphNode | undefined;
+    for (const n of fx.nodes) {
+      if (n.kind === "file") continue;
+      if (n.loc.startLine <= line0 && line0 <= n.loc.endLine) {
+        if (!best || n.loc.startLine >= best.loc.startLine) best = this.state.nodes.get(n.id) ?? n;
+      }
+    }
+    return best ?? this.state.nodes.get(makeNodeId(fx.lang, file));
   }
 
   /** Used by nav_callHierarchy's map fallback. */

@@ -1,8 +1,9 @@
+import { LiveService } from "./live/api.js";
+import { LspPool } from "./live/pool.js";
 import { MapService } from "./map/service.js";
 import type { AppContext } from "./tools/context.js";
 
-/** Wires concrete services into the context. Grows as layers land:
- * map service (done) -> live pool (phase 5) -> bridge (phase 6). */
+/** Wires concrete services into the context: map, live LSP pool, bridge. */
 export async function initServices(ctx: AppContext): Promise<void> {
   const map = new MapService(ctx.config);
   const warm = await map.loadPersisted();
@@ -19,8 +20,19 @@ export async function initServices(ctx: AppContext): Promise<void> {
   }
   ctx.map = map;
 
+  const pool = new LspPool(ctx.config);
+  const live = new LiveService(ctx.config, pool, () => map);
+  ctx.live = live;
+
   if (ctx.config.watch) {
     const { startWatcher } = await import("./map/watch.js");
-    startWatcher(ctx.config, map);
+    const watcher = startWatcher(ctx.config, map);
+    // keep LSP open-document set in sync with deletions
+    watcher.subscribe((event, rel) => {
+      if (event !== "unlink") return;
+      for (const client of pool.active()) {
+        client.docs.close(client, `${ctx.config.root}/${rel}`);
+      }
+    });
   }
 }

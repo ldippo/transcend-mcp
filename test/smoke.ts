@@ -3,6 +3,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import assert from "node:assert";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -88,6 +89,63 @@ async function main() {
   assert.strictEqual(badResolve.ok, false);
   assert.match(badResolve.error.code, /BAD_ARGS|LSP_UNAVAILABLE/);
   console.log(`✓ resolve arg validation: ${badResolve.error.code}`);
+
+  // 3. LIVE layer (skipped when language servers are not installed)
+  const navDef = await call(client, "nav_definition", { file: "src/api.ts", line: 8, col: 16 });
+  if (!navDef.ok && navDef.error.code === "LSP_UNAVAILABLE") {
+    console.log("• nav_* skipped: typescript-language-server not installed (map-only mode verified)");
+  } else {
+    // api.ts:8:16 is `store.create(...)` -> definition in store.ts
+    assert.strictEqual(navDef.ok, true, `nav_definition failed: ${JSON.stringify(navDef.error)}`);
+    assert(
+      navDef.data.locations.some((l: any) => l.file === "src/store.ts"),
+      `definition should land in store.ts, got ${JSON.stringify(navDef.data.locations)}`,
+    );
+    console.log(`✓ nav_definition: ${navDef.data.locations[0].file}:${navDef.data.locations[0].line}`);
+
+    // refresh() is defined at store.ts; find its references
+    const refs = await call(client, "nav_references", { file: "src/store.ts", line: 17, col: 3 });
+    assert.strictEqual(refs.ok, true, `nav_references failed: ${JSON.stringify(refs.error)}`);
+    assert(refs.data.total >= 1, "expected at least one reference to refresh()");
+    console.log(`✓ nav_references: ${refs.data.total} reference(s) to refresh`);
+
+    // freshness: append a new caller on disk, re-query, count must grow immediately
+    const apiPath = path.join(fixtureRoot, "src", "api.ts");
+    const original = await readFile(apiPath, "utf8");
+    try {
+      await writeFile(apiPath, original + "\nexport function keepAlive(t: string) {\n  return store.refresh(t);\n}\n");
+      const refs2 = await call(client, "nav_references", { file: "src/store.ts", line: 17, col: 3 });
+      assert.strictEqual(refs2.ok, true);
+      assert(
+        refs2.data.total > refs.data.total,
+        `expected reference count to grow after disk edit (${refs.data.total} -> ${refs2.data.total})`,
+      );
+      console.log(`✓ freshness: disk edit visible immediately (${refs.data.total} -> ${refs2.data.total} refs)`);
+    } finally {
+      await writeFile(apiPath, original);
+    }
+
+    const hover = await call(client, "nav_type", { file: "src/store.ts", line: 17, col: 3 });
+    assert.strictEqual(hover.ok, true);
+    assert(hover.data.contents.includes("refresh"), "hover should mention refresh");
+    console.log(`✓ nav_type: ${hover.data.contents.split("\n")[0]?.slice(0, 60)}`);
+
+    const symbols = await call(client, "nav_symbols", { file: "src/store.ts" });
+    assert.strictEqual(symbols.ok, true);
+    const cls = symbols.data.symbols.find((s: any) => s.name === "SessionStore");
+    assert(cls?.children?.some((c: any) => c.name === "refresh"), "outline should nest refresh under SessionStore");
+    console.log(`✓ nav_symbols: SessionStore with ${cls.children.length} member(s)`);
+
+    const hierarchy = await call(client, "nav_callHierarchy", {
+      file: "src/store.ts",
+      line: 17,
+      col: 3,
+      direction: "incoming",
+    });
+    assert.strictEqual(hierarchy.ok, true);
+    assert(hierarchy.data.root.children.length >= 1, "refresh should have incoming callers");
+    console.log(`✓ nav_callHierarchy (${hierarchy.data.source}): ${hierarchy.data.root.children.length} caller(s)`);
+  }
 
   await client.close();
   console.log("SMOKE OK");
