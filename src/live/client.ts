@@ -74,6 +74,11 @@ export class LspClient implements SyncTarget {
     return this.server?.stderrTail() ?? [];
   }
 
+  /** Child PID (diagnostics / crash-recovery tests). */
+  pid(): number | undefined {
+    return this.server?.proc.pid;
+  }
+
   // ------------------------------------------------------------ lifecycle
 
   async ensureReady(): Promise<void> {
@@ -259,21 +264,32 @@ export class LspClient implements SyncTarget {
     if (!conn) throw new ToolError("LSP_FAILED", `${this.cfg.command} connection lost.`, { language: this.lang });
     const source = new CancellationTokenSource();
     const ms = timeoutMs ?? this.defaultTimeoutMs;
-    const timer = setTimeout(() => source.cancel(), ms);
+    const timeoutError = () =>
+      new ToolError("LSP_TIMEOUT", `${this.cfg.command} did not answer within ${ms}ms.`, {
+        language: this.lang,
+        hint: "Try the static map (map_neighbors) or retry; large projects can be slow on first query.",
+      });
+    let timer: NodeJS.Timeout;
+    // cancellation alone is advisory — the server may answer anyway, so the
+    // deadline must also win the race
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        source.cancel();
+        reject(timeoutError());
+      }, ms);
+    });
+    // the variadic RequestParam<P> overloads don't narrow through a generic
+    // wrapper; the (method, param, token) overload is the stable one
+    const pending = conn.sendRequest(type.method, params, source.token);
+    pending.catch(() => {}); // losing the race must not leave an unhandled rejection
     try {
-      // the variadic RequestParam<P> overloads don't narrow through a generic
-      // wrapper; the (method, param, token) overload is the stable one
-      return (await conn.sendRequest(type.method, params, source.token)) as R;
+      return (await Promise.race([pending, deadline])) as R;
     } catch (err) {
-      if (source.token.isCancellationRequested) {
-        throw new ToolError("LSP_TIMEOUT", `${this.cfg.command} did not answer within ${ms}ms.`, {
-          language: this.lang,
-          hint: "Try the static map (map_neighbors) or retry; large projects can be slow on first query.",
-        });
-      }
+      if (err instanceof ToolError) throw err;
+      if (source.token.isCancellationRequested) throw timeoutError();
       throw err;
     } finally {
-      clearTimeout(timer);
+      clearTimeout(timer!);
       source.dispose();
     }
   }
