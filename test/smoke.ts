@@ -145,6 +145,39 @@ async function main() {
     assert.strictEqual(hierarchy.ok, true);
     assert(hierarchy.data.root.children.length >= 1, "refresh should have incoming callers");
     console.log(`✓ nav_callHierarchy (${hierarchy.data.source}): ${hierarchy.data.root.children.length} caller(s)`);
+
+    // 4. Bridge: nodeId -> live location, fresh map agrees
+    const res1 = await call(client, "resolve", { nodeId: "ts:src/store.ts#SessionStore.refresh" });
+    assert.strictEqual(res1.ok, true, `resolve failed: ${JSON.stringify(res1.error)}`);
+    assert.strictEqual(res1.data.location.file, "src/store.ts");
+    assert.strictEqual(res1.data.mapStale, false);
+    assert.strictEqual(res1.data.verified, true);
+    console.log(`✓ resolve(nodeId): ${res1.data.location.file}:${res1.data.location.line} mapStale=${res1.data.mapStale}`);
+
+    // 5. Bridge inverse: position -> nodeId round-trip
+    const res2 = await call(client, "resolve", {
+      file: res1.data.location.file,
+      line: res1.data.location.line,
+      col: res1.data.location.col,
+    });
+    assert.strictEqual(res2.ok, true);
+    assert.strictEqual(res2.data.nodeId, "ts:src/store.ts#SessionStore.refresh", "round-trip should return the original id");
+    console.log(`✓ resolve(position) round-trip: ${res2.data.nodeId}`);
+
+    // 6. Staleness: insert lines above the symbol; resolve must flag drift and
+    //    return the corrected (live) line while the map still has the old one
+    const storePath = path.join(fixtureRoot, "src", "store.ts");
+    const storeOriginal = await readFile(storePath, "utf8");
+    try {
+      await writeFile(storePath, "// drift\n// drift\n// drift\n" + storeOriginal);
+      const res3 = await call(client, "resolve", { nodeId: "ts:src/store.ts#SessionStore.refresh" });
+      assert.strictEqual(res3.ok, true);
+      assert.strictEqual(res3.data.mapStale, true, "expected mapStale after inserting lines");
+      assert.strictEqual(res3.data.location.line, res1.data.location.line + 3, "live line should reflect the drift");
+      console.log(`✓ resolve staleness: live line ${res3.data.location.line}, mapStale=true, mapRange=${JSON.stringify(res3.data.mapRange)}`);
+    } finally {
+      await writeFile(storePath, storeOriginal);
+    }
   }
 
   await client.close();

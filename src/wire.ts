@@ -24,6 +24,9 @@ export async function initServices(ctx: AppContext): Promise<void> {
   const live = new LiveService(ctx.config, pool, () => map);
   ctx.live = live;
 
+  const { Bridge } = await import("./bridge/resolve.js");
+  ctx.bridge = new Bridge(ctx.config, map, live);
+
   if (ctx.config.watch) {
     const { startWatcher } = await import("./map/watch.js");
     const watcher = startWatcher(ctx.config, map);
