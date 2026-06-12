@@ -1,0 +1,20 @@
+/* Accent palette: suite design language (see transcend-harness), teal accent
+ * to distinguish transcend-mcp within the family. */
+:root {
+  --sl-color-accent-low: #123a3f;
+  --sl-color-accent: #2dd4bf;
+  --sl-color-accent-high: #a7f3eb;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #d5f5f0;
+  --sl-color-accent: #0d9488;
+  --sl-color-accent-high: #134e4a;
+}
+
+.hero h1 {
+  background: linear-gradient(90deg, var(--sl-color-accent-high), var(--sl-color-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

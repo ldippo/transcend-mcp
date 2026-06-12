@@ -1,5 +1,7 @@
 # transcend
 
+**Docs: [ldippo.github.io/transcend-mcp](https://ldippo.github.io/transcend-mcp/)** · Suite: [transcend-harness](https://ldippo.github.io/transcend-harness/)
+
 A code-intelligence MCP server for coding agents: a cheap static **map** of a
 repository (tree-sitter structural graph — clusters, hubs, budgeted subgraphs)
 plus precise **live navigation** (real language servers via LSP), bridged by

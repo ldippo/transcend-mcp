@@ -1,0 +1,72 @@
+---
+title: transcend-mcp
+description: A code-intelligence MCP server for coding agents — a cheap static map of the repository plus live language-server navigation, bridged by stable symbol IDs.
+template: splash
+hero:
+  tagline: Gives a coding agent a cheap static <code>map</code> of any repository and precise <code>live</code> navigation from real language servers — bridged by stable symbol IDs, budgeted to the token.
+  actions:
+    - text: Get Started
+      link: /transcend-mcp/getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/ldippo/transcend-mcp
+      icon: external
+      variant: minimal
+---
+
+{/* adapted from README.md and docs/AGENT_GUIDE.md */}
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Orient cheaply, confirm precisely
+
+One MCP server, two cooperating layers. The agent orients on a pre-built structural graph for milliseconds and zero language-server cost, then drills into ground truth only where it matters — every response structured, anchored to `file:line`, and capped by an explicit token budget.
+
+<CardGrid stagger>
+  <Card title="The Map" icon="puzzle">
+    A tree-sitter structural graph: clusters, hub symbols, imports, calls, inheritance. Instant, local, incremental.
+
+    [The two layers →](/transcend-mcp/concepts/two-layers/)
+  </Card>
+  <Card title="Live Navigation" icon="rocket">
+    Real language servers (pyright, tsserver) for definition, references, hover, call hierarchy — always reflecting current disk state.
+
+    [Nav tools →](/transcend-mcp/reference/nav-tools/)
+  </Card>
+  <Card title="The Bridge" icon="random">
+    `resolve` crosses layers: node ID ⇄ verified live `file:line:col`, with staleness flagged whenever the two disagree.
+
+    [The resolve tool →](/transcend-mcp/reference/resolve/)
+  </Card>
+  <Card title="Token Budgets" icon="seti:json">
+    Every tool accepts a `tokenBudget`; oversized results are ranked, truncated, and annotated with how to get the rest back.
+
+    [Response envelope →](/transcend-mcp/reference/envelope/)
+  </Card>
+  <Card title="Freshness, Observable" icon="approve-check">
+    Nav is always live; the map flags itself stale per-file the instant a watcher sees a change. Staleness is never silent.
+
+    [Freshness &amp; staleness →](/transcend-mcp/concepts/freshness/)
+  </Card>
+  <Card title="Add a Language" icon="add-document">
+    A language is one extractor directory (grammar + three `.scm` queries) plus an LSP command — zero core changes.
+
+    [Adding a language →](/transcend-mcp/guides/add-a-language/)
+  </Card>
+</CardGrid>
+
+## The three-step policy
+
+Tool descriptions teach the agent to reach for the cheapest call that answers the question:
+
+| Step | Layer | Tools | Cost |
+|------|-------|-------|------|
+| 1 — Orient | MAP (static index) | `map_overview`, `map_search`, `map_neighbors`, `map_path` | milliseconds, no LSP |
+| 2 — Drill | LIVE (language server) | `nav_definition`, `nav_references`, `nav_type`, `nav_callHierarchy` | authoritative, always current |
+| 3 — Cross | BRIDGE | `resolve` | node ID ⇄ verified position |
+
+When map and language server disagree, the language server wins — and the response says so. Read the full policy in [Orchestration](/transcend-mcp/concepts/orchestration/).
+
+## Product suite
+
+transcend-mcp pairs with [**transcend-harness**](https://ldippo.github.io/transcend-harness/) — a meta-framework that generates a bespoke, committed `.claude/` harness for your project. The harness shapes *how* your agent works; transcend-mcp gives it *eyes* on the codebase.
