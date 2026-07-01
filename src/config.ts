@@ -16,6 +16,8 @@ export interface Config {
   root: string;
   /** Where the persisted map index lives. */
   indexDir: string;
+  /** Where cumulative token-savings metrics are persisted. */
+  metricsPath: string;
   watch: boolean;
   lsp: Record<Lang, LspServerConfig>;
   /** Default ignore patterns applied on top of .gitignore. */
@@ -47,6 +49,7 @@ export function makeConfig(root: string, opts: { watch?: boolean } = {}): Config
   return {
     root: abs,
     indexDir: path.join(abs, ".transcend", "index"),
+    metricsPath: path.join(abs, ".transcend", "metrics.json"),
     watch: opts.watch ?? true,
     lsp: {
       py: {
