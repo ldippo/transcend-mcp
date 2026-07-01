@@ -31,6 +31,15 @@ node dist/src/index.js --root /path/to/repo --no-watch # disable the file watche
 
 On first run the server builds the static map in the background (≈0.5s per 1k files) and persists it under `<repo>/.transcend/` — add that directory to your `.gitignore`. Subsequent runs warm-start from disk and refresh incrementally.
 
+To see how many tokens the server has saved you, run the `report` subcommand (it reads `<repo>/.transcend/metrics.json` and exits without starting the server):
+
+```sh
+node dist/src/index.js report --root /path/to/repo          # per-tool table + total
+node dist/src/index.js report --root /path/to/repo --json   # raw JSON
+```
+
+See [Token savings](/transcend-mcp/reference/metrics/) for the full accounting.
+
 ## Wire into a harness
 
 Claude Code:
@@ -62,6 +71,7 @@ map_overview {"tokenBudget": 1500}     // clusters + hub symbols
 map_search {"query": "refresh"}        // fuzzy lookup -> node IDs
 resolve {"nodeId": "ts:src/store.ts#SessionStore.refresh"}  // -> live file:line:col
 nav_references {"file": "src/store.ts", "line": 17, "col": 3}
+metrics_report {}                      // tokens saved so far, per tool
 ```
 
 ## Try it interactively

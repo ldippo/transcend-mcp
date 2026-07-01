@@ -53,6 +53,11 @@ One MCP server, two cooperating layers. The agent orients on a pre-built structu
 
     [Adding a language →](/transcend-mcp/guides/add-a-language/)
   </Card>
+  <Card title="Token Savings, Measured" icon="setting">
+    Every response is scored against the naive alternative — full reads of the files it points into — and the savings accumulate, reportable per tool.
+
+    [Token savings →](/transcend-mcp/reference/metrics/)
+  </Card>
 </CardGrid>
 
 ## The three-step policy
@@ -66,6 +71,8 @@ Tool descriptions teach the agent to reach for the cheapest call that answers th
 | 3 — Cross | BRIDGE | `resolve` | node ID ⇄ verified position |
 
 When map and language server disagree, the language server wins — and the response says so. Read the full policy in [Orchestration](/transcend-mcp/concepts/orchestration/).
+
+One meta tool sits outside the three steps: `metrics_report` tallies the tokens transcend has saved versus reading the referenced files in full. See [Token savings](/transcend-mcp/reference/metrics/).
 
 ## Product suite
 
