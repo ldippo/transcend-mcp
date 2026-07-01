@@ -7,7 +7,7 @@ description: One MCP server, two layers, one bridge — the components and the l
 
 ```
             ┌─────────────────────────────────────────────────┐
-            │ MCP server (14 tools, uniform budgeted envelope) │
+            │ MCP server (15 tools, uniform budgeted envelope) │
             └──────┬──────────────────┬───────────────┬───────┘
                    │ map_*            │ nav_*         │ resolve
             ┌──────▼──────┐    ┌──────▼──────┐  ┌─────▼─────┐
@@ -25,7 +25,7 @@ description: One MCP server, two layers, one bridge — the components and the l
 
 **Derived state**: Louvain communities on a weighted file-level projection (`imports`/`extends` weight 3, `calls` 2, `references` 1), seeded RNG for deterministic cluster IDs, renumbered by size. Hub score = `0.5·degree + 0.5·PageRank` on the symbol graph. Reclustering is lazy (≥25 files or ≥2% changed); small edits inherit prior clusters so IDs don't churn under the agent.
 
-**Persistence** (`.transcend/index/`): a manifest of content hashes + stale flags, plus one JSON shard per file — incremental saves are O(changed), every write is tmp+rename atomic, and a `kill -9` mid-build leaves the previous index intact.
+**Persistence** (`.transcend/index/`): a manifest of content hashes + stale flags, plus one JSON shard per file — incremental saves are O(changed), every write is tmp+rename atomic, and a `kill -9` mid-build leaves the previous index intact. Cumulative token-savings metrics persist alongside in `.transcend/metrics.json` under the same atomic discipline.
 
 ## LIVE layer
 
@@ -46,6 +46,7 @@ MAP→LSP walks the live document-symbol tree by qualified name, with name-ancho
 - **One envelope** (`src/respond.ts`): rank → binary-search the largest fitting prefix → annotate what was dropped. Domain failures are `ok: false` envelopes with stable codes — never MCP protocol errors.
 - **One watcher** (`src/map/watch.ts`): chokidar feeds both the map (stale flags on event arrival, debounced single-flight incremental rebuild — 300ms quiet / 2s max-wait) and the LIVE layer (didClose on unlink).
 - **Positions**: 1-based on the MCP surface, 0-based internally; conversion only at layer boundaries.
-- **Local-only**: no telemetry, no network calls, no LLM calls in the indexing path.
+- **Token-savings metrics** (`src/metrics.ts`): the `wrap()` boundary scores each successful response's emitted tokens against a baseline of full reads of every file it points into, accumulating the delta to `.transcend/metrics.json`. Surfaced by `metrics_report`, the `transcend report` CLI, and a shutdown summary. See [Token savings](/transcend-mcp/reference/metrics/).
+- **Local-only**: no telemetry, no network calls, no LLM calls in the indexing path — metrics stay on disk.
 
 Source: [github.com/ldippo/transcend-mcp](https://github.com/ldippo/transcend-mcp) — `src/map/`, `src/live/`, `src/bridge/`, `src/tools/`.

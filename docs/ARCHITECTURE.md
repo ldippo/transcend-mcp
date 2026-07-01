@@ -4,7 +4,7 @@ One MCP server (stdio), two layers, one bridge.
 
 ```
             ┌────────────────────────────────────────────────┐
-            │ MCP server (14 tools, uniform budgeted envelope)│
+            │ MCP server (15 tools, uniform budgeted envelope)│
             └──────┬──────────────────┬───────────────┬──────┘
                    │ map_*            │ nav_*         │ resolve
             ┌──────▼──────┐    ┌──────▼──────┐  ┌─────▼─────┐
@@ -38,7 +38,8 @@ One MCP server (stdio), two layers, one bridge.
   inherit prior clusters so cluster IDs stay stable.
 - **Persistence**: `.transcend/index/` — a manifest (content hashes + stale
   flags) plus one JSON shard per file, so incremental saves are O(changed),
-  and all writes are tmp+rename atomic.
+  and all writes are tmp+rename atomic. Cumulative token-savings metrics live in
+  a sibling `.transcend/metrics.json` (same atomic write discipline).
 - **Performance**: 1,500-file cold index ≈ 0.7s sequential; incremental
   rebuild ≈ 150ms (hash sweep + one re-extract + full re-resolution). The
   worker-pool design from the original plan was dropped — measured numbers
@@ -90,4 +91,11 @@ One MCP server (stdio), two layers, one bridge.
 - **Watcher** (`src/map/watch.ts`): one chokidar instance feeds both the map
   (stale flags set on event arrival, debounced incremental rebuild — 300ms
   quiet / 2s max-wait, single-flight) and the LIVE layer (didClose on unlink).
-- No telemetry, no network calls; everything runs locally.
+- **Token-savings metrics** (`src/metrics.ts`): the `wrap()` boundary in
+  `src/server.ts` measures every successful response's emitted tokens (actual)
+  against the naive alternative — full reads of every file the response points
+  into (baseline) — and accumulates the delta. Referenced files are collected
+  generically by walking the envelope for `file` fields and decoding node IDs,
+  so it stays decoupled from individual tools. Surfaced by `metrics_report`, the
+  `transcend report` CLI, and a shutdown summary.
+- No telemetry, no network calls; everything (metrics included) runs locally.

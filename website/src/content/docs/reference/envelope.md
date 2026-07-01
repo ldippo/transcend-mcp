@@ -3,7 +3,7 @@ title: Response Envelope
 description: The uniform budgeted envelope every tool returns — token accounting, truncation notes, warnings, and stable error codes.
 ---
 
-Every tool — all fourteen — returns through one envelope. An agent learns the shape once:
+Every tool — all fifteen — returns through one envelope. An agent learns the shape once:
 
 ```jsonc
 {

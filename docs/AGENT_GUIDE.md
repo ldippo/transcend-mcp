@@ -29,6 +29,11 @@ dropped and how to get it back.
 Prefer the cheapest call that answers the question. If the map answers it,
 stop there; verify with nav only when you are about to rely on the answer.
 
+Outside the three steps, one meta tool: **`metrics_report`** reports the token
+savings transcend has produced — for each tool, emitted tokens vs the naive cost
+of reading in full every file the responses pointed into, this session and
+cumulatively. Call it when you want to show the value of using the server.
+
 ## Worked example: "Where is `refresh` defined and who calls it?"
 
 ```jsonc

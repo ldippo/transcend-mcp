@@ -40,6 +40,7 @@ export default defineConfig({
             { label: 'Map Tools', slug: 'reference/map-tools' },
             { label: 'Nav Tools', slug: 'reference/nav-tools' },
             { label: 'The resolve Tool', slug: 'reference/resolve' },
+            { label: 'Token Savings', slug: 'reference/metrics' },
             { label: 'Response Envelope', slug: 'reference/envelope' },
           ],
         },
