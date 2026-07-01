@@ -1,10 +1,15 @@
 import { LiveService } from "./live/api.js";
 import { LspPool } from "./live/pool.js";
 import { MapService } from "./map/service.js";
+import { MetricsRecorder } from "./metrics.js";
 import type { AppContext } from "./tools/context.js";
 
-/** Wires concrete services into the context: map, live LSP pool, bridge. */
+/** Wires concrete services into the context: map, live LSP pool, bridge, metrics. */
 export async function initServices(ctx: AppContext): Promise<void> {
+  const metrics = new MetricsRecorder(ctx.config.metricsPath);
+  await metrics.load();
+  ctx.metrics = metrics;
+
   const map = new MapService(ctx.config);
   const warm = await map.loadPersisted();
   if (!warm) {

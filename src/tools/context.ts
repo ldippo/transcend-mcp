@@ -1,6 +1,7 @@
 /** Contracts the tool layer consumes. The map/, live/ and bridge/ modules
  * implement these; tools stay thin and identical from scaffold to finish. */
 import type { Config } from "../config.js";
+import type { MetricsRecorder } from "../metrics.js";
 import type { Anchor } from "../types.js";
 
 // ---------------------------------------------------------------- MAP
@@ -186,4 +187,5 @@ export interface AppContext {
   map: MapApi | null;
   live: LiveApi | null;
   bridge: BridgeApi | null;
+  metrics: MetricsRecorder | null;
 }

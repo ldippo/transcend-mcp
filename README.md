@@ -67,9 +67,29 @@ encode.
 | `nav_type` / `nav_symbols` / `nav_workspaceSymbols` | live | hover, file outline, workspace search |
 | `nav_callHierarchy` | live | incoming/outgoing calls (capability-gated, with fallback) |
 | `resolve` | bridge | node ID ⇄ verified live `file:line:col`, staleness flagged |
+| `metrics_report` | meta | token savings so far (this session + cumulative) |
 
 All tools accept `tokenBudget` (default 2000, max 10000) and return a uniform
 envelope; see the agent guide.
+
+## Token savings
+
+Every successful tool response is measured against the naive alternative —
+reading in full every file the response points into — and the delta is
+accumulated cumulatively in `.transcend/metrics.json`:
+
+```
+savings = baseline (full reads of referenced files) − actual (emitted tokens)
+```
+
+Baseline is an upper bound (an agent might not read whole files). View it three
+ways: the `metrics_report` tool (live, mid-session), a one-line stderr summary
+on shutdown, or the CLI report:
+
+```sh
+node dist/src/index.js report --root /path/to/repo          # per-tool table + total
+node dist/src/index.js report --root /path/to/repo --json   # raw JSON
+```
 
 ## Development
 
