@@ -9,6 +9,7 @@ export default defineConfig({
       title: 'transcend-mcp',
       description:
         'A code-intelligence MCP server for coding agents: a cheap static map of the repo plus live language-server navigation, bridged.',
+      logo: { src: './src/assets/logo.svg', alt: 'transcend-mcp' },
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/ldippo/transcend-mcp' },
         {

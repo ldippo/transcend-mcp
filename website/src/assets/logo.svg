@@ -1,0 +1,21 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="transcend-mcp">
+  <title>transcend-mcp</title>
+  <defs>
+    <linearGradient id="mcpBg" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0d9488"/>
+      <stop offset="1" stop-color="#2dd4bf"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#mcpBg)"/>
+  <g stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M18 46 L32 34 L46 20"/>
+    <path d="M32 34 L45 45" opacity="0.85"/>
+  </g>
+  <g fill="#ffffff">
+    <circle cx="18" cy="46" r="4.5"/>
+    <circle cx="46" cy="20" r="4.5"/>
+    <circle cx="45" cy="45" r="4" opacity="0.85"/>
+  </g>
+  <circle cx="32" cy="34" r="5.5" fill="#0b3b38"/>
+  <circle cx="32" cy="34" r="5.5" fill="none" stroke="#ffffff" stroke-width="3"/>
+</svg>
